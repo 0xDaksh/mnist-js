@@ -1,0 +1,103 @@
+<div id="app">
+	<canvas id="canvas" width="224" height="224"></canvas>
+	<canvas id="sm-cv" width="28" height="28"></canvas>
+	<button @click="clear">CLEAR</button>
+	<button @click="predict">PREDICT</button>
+	<h2>PREDICTION: {{pred[0]}}</h2>
+	<div id="chart"></div>
+</div>
+
+<!-- SOME LIBS -->
+<script type="text/javascript" src="./js/vue.js"></script>
+<script type="text/javascript" src="./js/fabric.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.min.js"></script>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/apexcharts@2.1.2"></script>
+
+<script type="text/javascript">
+new Vue({
+	el: "#app",
+	data: {
+		canvas: null,
+		model: null,
+		img: null,
+		cv: null,
+		pred: ["NONE"],
+		chart: null,
+		chartEl: null
+	},
+	methods: {
+		clear() {
+			this.canvas.clear();
+			this.canvas.backgroundColor = "#000";
+			this.canvas.renderAll();
+			this.pred = ["NONE"]
+		},
+		getChartOptions(preds) {
+			let colors = ['#008FFB', '#00E396', '#FEB019', '#FF4560', '#775DD0', '#546E7A', '#26a69a', '#D10CE8']
+			let options = {
+			            chart: {
+			                height: 350,
+			                type: 'bar',
+			            },
+			            colors: colors,
+			            plotOptions: {
+			                bar: {
+			                    columnWidth: '45%',
+			                    distributed: true
+			                }
+			            },
+			            dataLabels: {
+			                enabled: false,
+			            },
+			            series: [{
+			                data: Object.values(preds).map(el => el*100)
+			            }],
+			            xaxis: {
+			                categories: Object.keys(preds),
+			                labels: {
+			                    style: {
+			                        colors: colors,
+			                        fontSize: '14px'
+			                    }
+			                }
+			            },
+			            title: {
+			            	text: "Probability Distribution of the Numbers."
+			            }
+			        }
+			return options;
+		},
+		async predict() {
+		    let tensor = tf.fromPixels(this.cv)
+		        .resizeNearestNeighbor([28, 28])
+		        .mean(2)
+		        .expandDims(2)
+		        .expandDims()
+		        .toFloat();			
+	        tensor = tensor.div(255.0)
+	        let preds = await this.model.predict(tensor).data();
+			this.pred = await tf.argMax(preds).data()
+			if (!this.chart) {
+				this.chart = new ApexCharts(
+		            document.querySelector("#chart"),
+		            this.getChartOptions(preds)
+		        )
+    	        this.chart.render()	
+			} else {
+				this.chart.updateOptions(this.getChartOptions(preds));
+			}
+		}
+	},
+	async mounted() {
+		this.cv = document.querySelector("#canvas")
+		this.canvas = new fabric.Canvas('canvas');
+		this.canvas.isDrawingMode = true;
+		this.canvas.freeDrawingBrush.width = 20;
+		this.canvas.freeDrawingBrush.color = "#fff";
+		this.canvas.backgroundColor = "#000";
+		this.canvas.renderAll();
+		this.model = await tf.loadModel("./save/model.json")
+		this.chartEl = document.getElementById("chart");
+	}
+})
+</script>
