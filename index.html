@@ -68,7 +68,7 @@ new Vue({
 			return options;
 		},
 		async predict() {
-		    let tensor = tf.fromPixels(this.cv)
+		    let tensor = tf.browser.fromPixels(this.cv)
 		        .resizeNearestNeighbor([28, 28])
 		        .mean(2)
 		        .expandDims(2)
