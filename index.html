@@ -96,7 +96,7 @@ new Vue({
 		this.canvas.freeDrawingBrush.color = "#fff";
 		this.canvas.backgroundColor = "#000";
 		this.canvas.renderAll();
-		this.model = await tf.loadGraphModel("./save/model.json")
+		this.model = await tf.loadLayersModel("./save/model.json")
 		this.chartEl = document.getElementById("chart");
 	}
 })
